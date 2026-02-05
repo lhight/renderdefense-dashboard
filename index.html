@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Render Defense — Security Dashboard (Coming Soon)</title>
+    <meta name="description" content="The Render Defense Security Dashboard — real-time visibility into your security posture, compliance health, and active threats. Coming soon.">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+        *, *::before, *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0a0f;
+            --bg-secondary: #12121a;
+            --bg-card: #16161f;
+            --border: rgba(255,255,255,0.06);
+            --border-glow: rgba(122, 12, 18, 0.3);
+            --text-primary: #e8e8ed;
+            --text-secondary: #8a8a9a;
+            --text-muted: #55556a;
+            --accent: #7a0c12;
+            --accent-bright: #c41420;
+            --accent-glow: rgba(196, 20, 32, 0.15);
+            --green: #22c55e;
+            --green-dim: rgba(34, 197, 94, 0.1);
+        }
+
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Atmospheric background */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: 
+                radial-gradient(ellipse at 30% 20%, rgba(122, 12, 18, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 70% 80%, rgba(122, 12, 18, 0.05) 0%, transparent 50%);
+            animation: drift 20s ease-in-out infinite alternate;
+            z-index: 0;
+        }
+
+        @keyframes drift {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            100% { transform: translate(-30px, -20px) rotate(2deg); }
+        }
+
+        /* Scan line effect */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: repeating-linear-gradient(
+                0deg,
+                transparent,
+                transparent 2px,
+                rgba(255,255,255,0.003) 2px,
+                rgba(255,255,255,0.003) 4px
+            );
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .container {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+            padding: 2rem;
+            max-width: 640px;
+            width: 100%;
+        }
+
+        /* Logo area */
+        .logo-mark {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 3rem;
+            opacity: 0;
+            animation: fadeIn 0.8s ease forwards 0.2s;
+        }
+
+        .logo-mark .rd-icon {
+            width: 28px;
+            height: 28px;
+            background: var(--accent);
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'JetBrains Mono', monospace;
+            font-weight: 600;
+            font-size: 11px;
+            color: white;
+            letter-spacing: 0.5px;
+        }
+
+        .logo-mark span {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+
+        /* Status badge */
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 6px 16px;
+            background: var(--green-dim);
+            border: 1px solid rgba(34, 197, 94, 0.2);
+            border-radius: 100px;
+            margin-bottom: 2.5rem;
+            opacity: 0;
+            animation: fadeIn 0.8s ease forwards 0.4s;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--green);
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
+            50% { opacity: 0.7; box-shadow: 0 0 0 4px rgba(34, 197, 94, 0); }
+        }
+
+        .status-badge span {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--green);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* Main heading */
+        h1 {
+            font-size: clamp(2rem, 5vw, 3.2rem);
+            font-weight: 700;
+            line-height: 1.15;
+            margin-bottom: 1.25rem;
+            letter-spacing: -0.5px;
+            opacity: 0;
+            animation: fadeUp 0.8s ease forwards 0.5s;
+        }
+
+        h1 .accent {
+            color: var(--accent-bright);
+        }
+
+        /* Subtext */
+        .subtext {
+            font-size: 1.05rem;
+            color: var(--text-secondary);
+            line-height: 1.7;
+            margin-bottom: 3rem;
+            max-width: 480px;
+            margin-left: auto;
+            margin-right: auto;
+            opacity: 0;
+            animation: fadeUp 0.8s ease forwards 0.65s;
+        }
+
+        /* Terminal-style feature preview */
+        .terminal {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 0;
+            text-align: left;
+            margin-bottom: 3rem;
+            overflow: hidden;
+            opacity: 0;
+            animation: fadeUp 0.8s ease forwards 0.8s;
+        }
+
+        .terminal-header {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 12px 16px;
+            background: rgba(255,255,255,0.02);
+            border-bottom: 1px solid var(--border);
+        }
+
+        .terminal-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--text-muted);
+        }
+
+        .terminal-dot:nth-child(1) { background: #ff5f57; }
+        .terminal-dot:nth-child(2) { background: #ffbd2e; }
+        .terminal-dot:nth-child(3) { background: #28c840; }
+
+        .terminal-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-left: 8px;
+        }
+
+        .terminal-body {
+            padding: 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12.5px;
+            line-height: 2;
+        }
+
+        .terminal-line {
+            display: flex;
+            gap: 10px;
+            opacity: 0;
+            animation: terminalType 0.4s ease forwards;
+        }
+
+        .terminal-line:nth-child(1) { animation-delay: 1.2s; }
+        .terminal-line:nth-child(2) { animation-delay: 1.6s; }
+        .terminal-line:nth-child(3) { animation-delay: 2.0s; }
+        .terminal-line:nth-child(4) { animation-delay: 2.4s; }
+        .terminal-line:nth-child(5) { animation-delay: 2.8s; }
+
+        .terminal-line .prefix {
+            color: var(--accent-bright);
+            user-select: none;
+        }
+
+        .terminal-line .label {
+            color: var(--text-muted);
+            min-width: 160px;
+        }
+
+        .terminal-line .value {
+            color: var(--text-primary);
+        }
+
+        .terminal-line .value.green { color: var(--green); }
+        .terminal-line .value.amber { color: #ffbd2e; }
+
+        @keyframes terminalType {
+            from { opacity: 0; transform: translateX(-4px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        /* CTA */
+        .cta-group {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 1rem;
+            opacity: 0;
+            animation: fadeUp 0.8s ease forwards 1s;
+        }
+
+        .cta-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 14px 32px;
+            background: var(--accent);
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            letter-spacing: 0.2px;
+            transition: all 0.25s ease;
+            border: 1px solid transparent;
+        }
+
+        .cta-link:hover {
+            background: var(--accent-bright);
+            box-shadow: 0 0 30px var(--accent-glow), 0 4px 20px rgba(0,0,0,0.3);
+            transform: translateY(-1px);
+        }
+
+        .cta-link svg {
+            width: 16px;
+            height: 16px;
+            transition: transform 0.25s ease;
+        }
+
+        .cta-link:hover svg {
+            transform: translateX(3px);
+        }
+
+        .back-link {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        .back-link:hover {
+            color: var(--text-secondary);
+        }
+
+        /* Footer */
+        .footer {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 1.5rem;
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            z-index: 2;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Mobile */
+        @media (max-width: 480px) {
+            .terminal-body {
+                font-size: 10.5px;
+                padding: 14px;
+            }
+            .terminal-line .label {
+                min-width: 120px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo-mark">
+            <div class="rd-icon">RD</div>
+            <span>Render Defense</span>
+        </div>
+
+        <div style="display:block;">
+            <div class="status-badge">
+                <div class="status-dot"></div>
+                <span>In Development</span>
+            </div>
+        </div>
+
+        <h1>Security Dashboard.<br><span class="accent">Coming Soon.</span></h1>
+
+        <p class="subtext">
+            Real-time visibility into your security posture, compliance health, and active threats — all in one pane of glass. Currently in development for Render Defense clients.
+        </p>
+
+        <div class="terminal">
+            <div class="terminal-header">
+                <div class="terminal-dot"></div>
+                <div class="terminal-dot"></div>
+                <div class="terminal-dot"></div>
+                <span class="terminal-title">dashboard.renderdefense.com</span>
+            </div>
+            <div class="terminal-body">
+                <div class="terminal-line">
+                    <span class="prefix">→</span>
+                    <span class="label">Threat monitoring</span>
+                    <span class="value green">● Ready</span>
+                </div>
+                <div class="terminal-line">
+                    <span class="prefix">→</span>
+                    <span class="label">Compliance tracking</span>
+                    <span class="value green">● Ready</span>
+                </div>
+                <div class="terminal-line">
+                    <span class="prefix">→</span>
+                    <span class="label">Risk scoring</span>
+                    <span class="value green">● Ready</span>
+                </div>
+                <div class="terminal-line">
+                    <span class="prefix">→</span>
+                    <span class="label">Client portal</span>
+                    <span class="value amber">◐ Building</span>
+                </div>
+                <div class="terminal-line">
+                    <span class="prefix">→</span>
+                    <span class="label">Launch status</span>
+                    <span class="value amber">◐ Q2 2026</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="cta-group">
+            <a href="https://renderdefense.com/#contact" class="cta-link">
+                Get Early Access
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg>
+            </a>
+            <a href="https://renderdefense.com" class="back-link">← Back to renderdefense.com</a>
+        </div>
+    </div>
+
+    <div class="footer">
+        © 2026 Render Defense. Strategy · Governance · Protection
+    </div>
+</body>
+</html>
